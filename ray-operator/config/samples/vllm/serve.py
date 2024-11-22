@@ -96,13 +96,15 @@ def parse_vllm_args(cli_args: Dict[str, str]):
     config options we want to support.
     """
     parser = FlexibleArgumentParser(description="vLLM CLI")
-    parser = parse_vllm_args(parser)
+    # Hier wird das Parsen der CLI-Argumente direkt durchgeführt, ohne rekursive Aufrufe
+    make_arg_parser(parser)  # oder eine passende Methode, um Argumente hinzuzufügen
     arg_strings = []
     for key, value in cli_args.items():
         arg_strings.extend([f"--{key}", str(value)])
     logger.info(arg_strings)
     parsed_args = parser.parse_args(args=arg_strings)
     return parsed_args
+
 
 
 def build_app(cli_args: Dict[str, str]) -> serve.Application:
