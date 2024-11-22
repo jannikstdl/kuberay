@@ -37,8 +37,8 @@ class VLLMDeployment:
         chat_template: Optional[str] = None,
     ):
         # Löschen der Umgebungsvariable 'CUDA_VISIBLE_DEVICES'
-        if 'CUDA_VISIBLE_DEVICES' in os.environ:
-            del os.environ['CUDA_VISIBLE_DEVICES']
+        #if 'CUDA_VISIBLE_DEVICES' in os.environ:
+        #    del os.environ['CUDA_VISIBLE_DEVICES']
 
         logger.info(f"Starting with engine args: {engine_args}")
         self.openai_serving_chat = None
@@ -96,7 +96,7 @@ def parse_vllm_args(cli_args: Dict[str, str]):
     config options we want to support.
     """
     parser = FlexibleArgumentParser(description="vLLM CLI")
-    parser = make_arg_parser(parser)
+    parser = parse_vllm_args(parser)
     arg_strings = []
     for key, value in cli_args.items():
         arg_strings.extend([f"--{key}", str(value)])
@@ -126,4 +126,4 @@ def build_app(cli_args: Dict[str, str]) -> serve.Application:
 
 
 model = build_app(
-    {"model": os.environ['MODEL_ID'], "tensor-parallel-size": os.environ['TENSOR_PARALLELISM'], "pipeline-parallel-size": os.environ['PIPELINE_PARALLELISM']})
+    {"model": os.environ['MODEL_ID'], "download-dir": os.environ['DOWNLOAD_DIR'], "max-model-len": os.environ['MAX_MODEL_LEN'], "tensor-parallel-size": os.environ['TENSOR_PARALLELISM'], "pipeline-parallel-size": os.environ['PIPELINE_PARALLELISM']})
