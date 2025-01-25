@@ -20,7 +20,8 @@ spec:
         pip: ["vllm==0.6.6"]
         env_vars:
           MODEL_ID: "ibnzterrell/Meta-Llama-3.3-70B-Instruct-AWQ-INT4"
-          SERVED_MODEL_NAME: "ibnzterrell/Meta-Llama-3.3-70B-Instruct-AWQ-INT4"
+          ENABLE_PREFIX_CACHING: "True"
+          ENABLE_CHUNKED_PREFILL: "True"
           TENSOR_PARALLELISM: "1"
           PIPELINE_PARALLELISM: "2"
           GPU_MEMORY_UTILIZATION: "0.90"
