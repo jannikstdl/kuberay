@@ -196,4 +196,4 @@ env_args = {
 if os.environ.get("ENABLE_CHUNKED_PREFILL", "False").lower() == "true":
     env_args["enable-chunked-prefill"] = ""  # flag without value
 
-app_to_serve = build_app(env_args)
+model = build_app(env_args)
