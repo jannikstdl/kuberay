@@ -4,7 +4,7 @@ import logging
 
 from fastapi import FastAPI
 from starlette.requests import Request
-from starlette.responses import StreamingResponse, JSONResponse
+from starlette.responses import StreamingResponse, JSONResponse, Response
 
 from ray import serve
 
@@ -17,7 +17,6 @@ from vllm.entrypoints.openai.protocol import (
 )
 from vllm.entrypoints.openai.serving_chat import OpenAIServingChat
 from vllm.entrypoints.chat_utils import ChatTemplateContentFormatOption
-from vllm.entrypoints.openai.serving_models import LoRAModulePath
 
 logger = logging.getLogger("ray.serve")
 
@@ -31,7 +30,7 @@ class VLLMDeployment:
         self,
         engine_args: AsyncEngineArgs,
         response_role: str,
-        lora_modules: Optional[List[LoRAModulePath]] = None,
+        lora_modules: Optional[List] = None,
         chat_template: Optional[str] = None,
     ):
         logger.info(f"Starting with engine args: {engine_args}")
@@ -80,6 +79,18 @@ class VLLMDeployment:
             assert isinstance(generator, ChatCompletionResponse)
             return JSONResponse(content=generator.model_dump())
 
+    @app.get("/health")
+    async def health(self) -> Response:
+        """Health check endpoint to ensure the server is running."""
+        try:
+            # Test the engine by fetching its config
+            model_config = await self.engine.get_model_config()
+            logger.info("Health check successful.")
+            return Response(content="OK", status_code=200)
+        except Exception as e:
+            logger.error(f"Health check failed: {e}")
+            return Response(content="Error", status_code=500)
+
 
 def parse_vllm_args(cli_args: Dict[str, str]):
     """Parses vLLM args based on CLI inputs."""
@@ -94,7 +105,7 @@ def build_app(cli_args: Dict[str, str]) -> serve.Application:
     return VLLMDeployment.bind(
         engine_args,
         response_role="assistant",  # Setze den Standard-Rollentyp
-        lora_modules=None,
+        lora_modules=None,  # LoRA-Unterstützung entfernt
         chat_template=None,
     )
 
