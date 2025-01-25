@@ -190,10 +190,12 @@ env_args = {
     "pipeline-parallel-size": os.environ.get("PIPELINE_PARALLELISM", "1"),
     "gpu-memory-utilization": os.environ.get("GPU_MEMORY_UTILIZATION", "0.9"),
     "max-model-len": os.environ.get("MAX_MODEL_LEN"),
-    "served-model-name": os.environ.get("SERVED_MODEL_NAME"),
 }
 
 if os.environ.get("ENABLE_CHUNKED_PREFILL", "False").lower() == "true":
     env_args["enable-chunked-prefill"] = ""  # flag without value
+
+if os.environ.get("ENABLE_PREFIX_CACHING", "False").lower() == "true":
+    env_args["enable-prefix-caching"] = ""  # flag without value
 
 model = build_app(env_args)
