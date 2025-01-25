@@ -48,6 +48,11 @@ class VLLMDeployment:
         self.chat_template = chat_template
         self.engine = AsyncLLMEngine.from_engine_args(engine_args)
 
+    @app.get("/health")
+    async def health() -> Response:
+        """Health check."""
+        return Response(status_code=200)
+
     @app.post("/v1/chat/completions")
     async def create_chat_completion(
         self, request: ChatCompletionRequest, raw_request: Request
