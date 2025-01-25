@@ -1,46 +1,71 @@
 apiVersion: ray.io/v1
 kind: RayService
 metadata:
-  name: ray-service-test
-  namespace: ray-test
+  name: ray-service
+  namespace: ray
 spec:
   serveConfigV2: |
     applications:
     - name: llm
       route_prefix: /
-      import_path:  ray-operator.config.samples.vllm.serve:model
+      import_path: ray-operator.config.samples.vllm.serve:model
       deployments:
       - name: VLLMDeployment
         num_replicas: 1
         ray_actor_options:
-          num_cpus: 2
+          num_cpus: 20
           # NOTE: num_gpus is set automatically based on TENSOR_PARALLELISM
       runtime_env:
         working_dir: "https://github.com/jannikstdl/kuberay/archive/master.zip"
-        pip: ["vllm==0.6.3"]
+        pip: ["vllm==0.6.6"]
         env_vars:
-          MODEL_ID: "Qwen/Qwen2.5-0.5B-Instruct-AWQ"
+          MODEL_ID: "ibnzterrell/Meta-Llama-3.3-70B-Instruct-AWQ-INT4"
+          SERVED_MODEL_NAME: "ibnzterrell/Meta-Llama-3.3-70B-Instruct-AWQ-INT4"
           TENSOR_PARALLELISM: "1"
           PIPELINE_PARALLELISM: "2"
-          MAX_MODEL_LEN: "1024"
+          GPU_MEMORY_UTILIZATION: "0.90"
+          MAX_MODEL_LEN: "8192"
+          DOWNLOAD_DIR: "/tmp/huggingface"
   rayClusterConfig:
     headGroupSpec:
       rayStartParams:
         dashboard-host: "0.0.0.0"
       template:
         spec:
+          securityContext:
+            fsGroup: 1000
+            runAsUser: 1000
+            runAsGroup: 1000
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: gpu
+                        operator: NotIn
+                        values:
+                          - "true"
+          volumes:
+            - name: model-storage-head
+              persistentVolumeClaim:
+                claimName: model-pvc-head
+            - name: logs-head
+              persistentVolumeClaim:
+                claimName: ray-logs-head
           containers:
             - name: ray-head
-              image: rayproject/ray-ml:2.33.0.914af0-py311
+              image: rayproject/ray-ml:2.40.0.160e35-py311
+              imagePullPolicy: IfNotPresent
+              volumeMounts:
+                - name: model-storage-head
+                  mountPath: /tmp/huggingface
+                  readOnly: false
+                - name: logs-head
+                  mountPath: /tmp/ray
               resources:
                 limits:
                   cpu: "2"
-                  memory: "8Gi"
-                  ephemeral-storage: "20Gi"
-                requests:
-                  cpu: "2"
-                  memory: "8Gi"
-                  ephemeral-storage: "10Gi"
+                  memory: "4Gi"
               ports:
                 - containerPort: 6379
                   name: gcs-server
@@ -51,29 +76,85 @@ spec:
                 - containerPort: 8000
                   name: serve
     workerGroupSpecs:
-      - replicas: 2
+      - replicas: 1
         minReplicas: 0
-        maxReplicas: 2
-        groupName: gpu-group
+        maxReplicas: 1
+        groupName: gpu-group-1
         rayStartParams: {}
         template:
           spec:
+            securityContext:
+              fsGroup: 1000
+              runAsUser: 1000
+              runAsGroup: 1000
+            nodeSelector:
+              gpu-node: worker1
+            volumes:
+              - name: model-storage-worker1
+                persistentVolumeClaim:
+                  claimName: model-pvc-worker1
+              - name: logs-worker1
+                persistentVolumeClaim:
+                  claimName: ray-logs-worker1
             containers:
               - name: llm
-                image: rayproject/ray-ml:2.33.0.914af0-py311
+                image: rayproject/ray-ml:2.40.0.160e35-py311
+                imagePullPolicy: IfNotPresent
+                volumeMounts:
+                  - name: model-storage-worker1
+                    mountPath: /tmp/huggingface
+                    readOnly: false
+                  - name: logs-worker1
+                    mountPath: /tmp/ray
                 resources:
                   limits:
-                    cpu: "2"
-                    memory: "20Gi"
                     nvidia.com/gpu: "1"
-                    ephemeral-storage: "20Gi"
                   requests:
-                    cpu: "2"
-                    memory: "20Gi"
                     nvidia.com/gpu: "1"
-                    ephemeral-storage: "10Gi"
-            # Please add the following taints to the GPU node.
-            tolerations:
-              - key: "nvidia.com/gpu"
-                operator: "Exists"
-                effect: "NoSchedule"
+                readinessProbe:
+                  httpGet:
+                    path: /health
+                    port: 8000
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
+      - replicas: 1
+        minReplicas: 0
+        maxReplicas: 1
+        groupName: gpu-group-2
+        rayStartParams: {}
+        template:
+          spec:
+            securityContext:
+              fsGroup: 1000
+              runAsUser: 1000
+              runAsGroup: 1000
+            nodeSelector:
+              gpu-node: worker2
+            volumes:
+              - name: model-storage-worker2
+                persistentVolumeClaim:
+                  claimName: model-pvc-worker2
+              - name: logs-worker2
+                persistentVolumeClaim:
+                  claimName: ray-logs-worker2
+            containers:
+              - name: llm
+                image: rayproject/ray-ml:2.40.0.160e35-py311
+                imagePullPolicy: IfNotPresent
+                volumeMounts:
+                  - name: model-storage-worker2
+                    mountPath: /tmp/huggingface
+                    readOnly: false
+                  - name: logs-worker2
+                    mountPath: /tmp/ray
+                resources:
+                  limits:
+                    nvidia.com/gpu: "1"
+                  requests:
+                    nvidia.com/gpu: "1"
+                readinessProbe:
+                  httpGet:
+                    path: /health
+                    port: 8000
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
