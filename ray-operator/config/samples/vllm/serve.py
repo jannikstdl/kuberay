@@ -193,7 +193,7 @@ env_args = {
 }
 
 if os.environ.get("ENABLE_CHUNKED_PREFILL", "False").lower() == "true":
-    env_args["enable-chunked-prefill"] = ""  # flag without value
+    env_args["enable-chunked-prefill"] = "true"  # flag without value
 
 if os.environ.get("ENABLE_PREFIX_CACHING", "False").lower() == "true":
     env_args["enable-prefix-caching"] = ""  # flag without value
