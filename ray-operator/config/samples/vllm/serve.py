@@ -36,10 +36,6 @@ class VLLMDeployment:
         lora_modules: Optional[List[LoRAModulePath]] = None,
         chat_template: Optional[str] = None,
     ):
-        # Löschen der Umgebungsvariable 'CUDA_VISIBLE_DEVICES'
-        #if 'CUDA_VISIBLE_DEVICES' in os.environ:
-        #    del os.environ['CUDA_VISIBLE_DEVICES']
-
         logger.info(f"Starting with engine args: {engine_args}")
         self.openai_serving_chat = None
         self.engine_args = engine_args
@@ -96,15 +92,13 @@ def parse_vllm_args(cli_args: Dict[str, str]):
     config options we want to support.
     """
     parser = FlexibleArgumentParser(description="vLLM CLI")
-    # Hier wird das Parsen der CLI-Argumente direkt durchgeführt, ohne rekursive Aufrufe
-    make_arg_parser(parser)  # oder eine passende Methode, um Argumente hinzuzufügen
+    parser = make_arg_parser(parser)
     arg_strings = []
     for key, value in cli_args.items():
         arg_strings.extend([f"--{key}", str(value)])
     logger.info(arg_strings)
     parsed_args = parser.parse_args(args=arg_strings)
     return parsed_args
-
 
 
 def build_app(cli_args: Dict[str, str]) -> serve.Application:
@@ -125,6 +119,8 @@ def build_app(cli_args: Dict[str, str]) -> serve.Application:
         parsed_args.lora_modules,
         parsed_args.chat_template,
     )
+
+
 
 
 model = build_app(
