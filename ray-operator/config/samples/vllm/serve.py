@@ -45,16 +45,14 @@ class VLLMDeployment:
         self.chat_template = chat_template
         self.engine = AsyncLLMEngine.from_engine_args(engine_args)
 
-    @app.get("/health")
-    async def health(self) -> Response:  # Hier self hinzugefügt
+    async def health(self) -> Response:
         """Health check."""
         return Response(status_code=200)
 
-    @app.post("/v1/chat/completions")
     async def create_chat_completion(
         self, request: ChatCompletionRequest, raw_request: Request
     ):
-        # Rest der Methode bleibt unverändert
+        """OpenAI-compatible HTTP endpoint."""
         if not self.openai_serving_chat:
             model_config = await self.engine.get_model_config()
             if self.engine_args.served_model_name is not None:
@@ -85,4 +83,40 @@ class VLLMDeployment:
             assert isinstance(generator, ChatCompletionResponse)
             return JSONResponse(content=generator.model_dump())
 
-# Rest des Codes bleibt unverändert
+
+def parse_vllm_args(cli_args: Dict[str, str]):
+    """Parses vLLM args based on CLI inputs."""
+    parser = FlexibleArgumentParser(description="vLLM CLI")
+    make_arg_parser(parser)
+    arg_strings = []
+    for key, value in cli_args.items():
+        arg_strings.extend([f"--{key}", str(value)])
+    logger.info(arg_strings)
+    parsed_args = parser.parse_args(args=arg_strings)
+    return parsed_args
+
+
+def build_app(cli_args: Dict[str, str]) -> serve.Application:
+    """Builds the Serve app based on CLI arguments."""
+    parsed_args = parse_vllm_args(cli_args)
+    engine_args = AsyncEngineArgs.from_cli_args(parsed_args)
+    engine_args.worker_use_ray = True
+
+    return VLLMDeployment.bind(
+        engine_args,
+        parsed_args.response_role,
+        parsed_args.lora_modules,
+        parsed_args.chat_template,
+    )
+
+
+model = build_app(
+    {
+        "model": os.environ["MODEL_ID"],
+        "gpu-memory-utilization": os.environ["GPU_MEMORY_UTILIZATION"],
+        "download-dir": os.environ["DOWNLOAD_DIR"],
+        "max-model-len": os.environ["MAX_MODEL_LEN"],
+        "tensor-parallel-size": os.environ["TENSOR_PARALLELISM"],
+        "pipeline-parallel-size": os.environ["PIPELINE_PARALLELISM"],
+    }
+)
