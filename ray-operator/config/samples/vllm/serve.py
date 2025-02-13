@@ -158,6 +158,8 @@ model = build_app(
         "max-model-len": os.environ["MAX_MODEL_LEN"],
         "tensor-parallel-size": os.environ["TENSOR_PARALLELISM"],
         "pipeline-parallel-size": os.environ["PIPELINE_PARALLELISM"],
+        if os.environ.get("ENABLE_CHUNKED_PREFILL", "False").lower() == "true":
+            env_args["enable-chunked-prefill"] = ""  # flag without value
         
         # Falls du METRICS deaktivieren willst (nicht empfohlen), könntest du:
         # "disable-metrics": "True"
