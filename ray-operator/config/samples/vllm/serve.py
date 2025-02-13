@@ -150,18 +150,18 @@ def build_app(cli_args: Dict[str, str]) -> serve.Application:
 
 
 # Erstelle eine Serve-App (bzw. -Deployment) mit den gewünschten Parametern
-model = build_app(
-    {
+env_args = {
         "model": os.environ["MODEL_ID"],
         "gpu-memory-utilization": os.environ["GPU_MEMORY_UTILIZATION"],
         "download-dir": os.environ["DOWNLOAD_DIR"],
         "max-model-len": os.environ["MAX_MODEL_LEN"],
         "tensor-parallel-size": os.environ["TENSOR_PARALLELISM"],
         "pipeline-parallel-size": os.environ["PIPELINE_PARALLELISM"],
-        if os.environ.get("ENABLE_CHUNKED_PREFILL", "False").lower() == "true":
-            env_args["enable-chunked-prefill"] = ""  # flag without value
-        
         # Falls du METRICS deaktivieren willst (nicht empfohlen), könntest du:
         # "disable-metrics": "True"
     }
-)
+
+if os.environ.get("ENABLE_CHUNKED_PREFILL", "False").lower() == "true":
+    env_args["enable-chunked-prefill"] = ""  # flag without value
+
+model = build_app(env_args)
