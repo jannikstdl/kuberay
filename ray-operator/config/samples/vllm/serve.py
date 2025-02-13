@@ -21,7 +21,7 @@ from vllm.entrypoints.openai.protocol import (
     ErrorResponse,
 )
 from vllm.entrypoints.openai.serving_chat import OpenAIServingChat
-from vllm.entrypoints.openai.serving_engine import LoRAModulePath, PromptAdapterPath
+from vllm.entrypoints.openai.serving_models import LoRAModulePath, PromptAdapterPath
 from vllm.utils import FlexibleArgumentParser
 from vllm.entrypoints.logger import RequestLogger
 
@@ -161,7 +161,7 @@ env_args = {
         # "disable-metrics": "True"
     }
 
-if os.environ.get("ENABLE_CHUNKED_PREFILL", "False").lower() == "true":
-    env_args["enable-chunked-prefill"] = ""  # flag without value
+#if os.environ.get("ENABLE_CHUNKED_PREFILL", "False").lower() == "true":
+#    env_args["enable-chunked-prefill"] = ""  # flag without value
 
 model = build_app(env_args)
