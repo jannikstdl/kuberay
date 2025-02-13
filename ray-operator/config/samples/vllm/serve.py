@@ -3,12 +3,12 @@ import os
 from typing import Dict, Optional, List
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from starlette.requests import Request
 from starlette.responses import StreamingResponse, JSONResponse
 
+# For VLLM Metrics
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
-from fastapi import FastAPI, Response
 
 from ray import serve
 
@@ -41,7 +41,6 @@ def metrics():
       brauchst du evtl. die Multiprozess-Sammlung. Siehe unten.
     """
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
 
 @serve.deployment(name="VLLMDeployment")
 @serve.ingress(app)
